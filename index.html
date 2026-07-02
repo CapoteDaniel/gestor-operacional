@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GESTOR OPERACIONAL</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Premium Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Chart.js CDN for Analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        binance: {
+                            gold: '#F0B90B',
+                            goldHover: '#D4A107',
+                            bgDark: '#0B0E11',
+                            cardDark: '#1E2329',
+                            inputDark: '#2B3139',
+                            textMuted: '#848E9C',
+                            profit: '#0ECB81',
+                            loss: '#F6465D'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0B0E11; /* Binance core dark */
+            scroll-behavior: smooth;
+        }
+        /* Custom scrollbar matching dark theme */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #181A20;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #474F59;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #F0B90B;
+        }
+    </style>
+</head>
+<body class="text-gray-100 min-h-screen flex flex-col overflow-x-hidden">
+
+    <header class="bg-binance-cardDark border-b border-gray-800 px-4 py-3.5 sticky top-0 z-40 shadow-md">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+            <!-- Brand Logo -->
+            <div class="flex items-center space-x-3">
+                <div class="bg-binance-gold text-binance-bgDark p-2 rounded-lg font-black text-lg shadow-lg shadow-binance-gold/10 flex items-center justify-center">
+                    <i class="fa-solid fa-chart-line-up text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-md font-bold tracking-tight text-white flex items-center gap-2">
+                        GESTOR OPERACIONAL <span class="text-[10px] bg-binance-gold/10 text-binance-gold px-2 py-0.5 rounded border border-binance-gold/20 font-mono font-bold">PRO v2.8</span>
+                    </h1>
+                    <p class="text-xs text-binance-textMuted font-medium">Gestor de Ganancias y Pérdidas: Futuros & P2P</p>
+                </div>
+            </div>
+
+            <!-- Global Action Controls -->
+            <div class="flex items-center space-x-2.5">
+                <button onclick="openBranchModal()" class="bg-binance-gold hover:bg-binance-goldHover text-binance-bgDark text-xs font-bold py-2 px-3.5 rounded-lg transition-all duration-200 flex items-center gap-1.5 shadow-md shadow-binance-gold/10">
+                    <i class="fa-solid fa-folder-plus text-sm"></i>
+                    <span>New Job</span>
+                </button>
+                <button onclick="openDoubleResetModal()" class="text-binance-textMuted hover:text-binance-loss text-xs font-semibold py-2 px-3 border border-gray-800 hover:border-binance-loss/30 rounded-lg transition-all duration-200">
+                    <i class="fa-solid fa-trash-can mr-1"></i> Reiniciar Todo
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN BODY WORKSPACE -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- SIDEBAR & BRANCH SELECTOR (SPAN 3 on desktop) -->
+        <div class="lg:col-span-3 flex flex-col gap-4">
+            <!-- Branch Selection Card -->
+            <div class="bg-binance-cardDark border border-gray-800 rounded-xl p-4">
+                <div class="flex items-center justify-between mb-3.5">
+                    <h3 class="text-xs font-bold uppercase text-binance-textMuted tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-network-wired text-binance-gold"></i> Trabajos / Jobs
+                    </h3>
+                    <span id="branch-count" class="text-[10px] bg-gray-800 text-gray-300 font-mono font-bold px-1.5 py-0.5 rounded">2</span>
+                </div>
+                
+                <!-- Tab items container -->
+                <div class="space-y-2" id="branch-tabs-container">
+                    <!-- Loaded dynamically via JavaScript -->
+                </div>
+            </div>
+
+            <!-- Initial Balance Setting Card -->
+            <div class="bg-binance-cardDark border border-gray-800 rounded-xl p-4">
+                <h3 class="text-xs font-bold uppercase text-binance-textMuted tracking-wider flex items-center gap-1.5 mb-3">
+                    <i class="fa-solid fa-wallet text-blue-400"></i> Capital
+                </h3>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-[11px] text-binance-textMuted mb-1 font-medium">Saldo Inicial (USD/USDT)</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2.5 text-xs text-binance-textMuted">$</span>
+                            <input type="number" id="input-initial-balance" step="any" onchange="updateInitialBalance(this.value)" class="w-full bg-binance-inputDark border border-gray-800 focus:border-binance-gold rounded-lg py-2 pl-7 pr-3 text-xs text-white focus:outline-none transition font-mono font-bold" placeholder="0.00">
+                        </div>
+                    </div>
+                    <div class="bg-binance-bgDark p-3 rounded-lg border border-gray-800/60">
+                        <p class="text-[10px] text-binance-textMuted uppercase font-bold tracking-wider mb-0.5">Saldo Neto de Operaciones</p>
+                        <p id="label-net-pnl" class="text-lg font-bold font-mono text-binance-profit">+$0.00</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- QUICK UTILITIES: Scroll Navigation to Calculators -->
+            <div class="bg-binance-cardDark border border-gray-800 rounded-xl p-4">
+                <h3 class="text-xs font-bold uppercase text-binance-textMuted tracking-wider flex items-center gap-1.5 mb-3">
+                    <i class="fa-solid fa-calculator text-amber-500"></i> Navegación Rápida
+                </h3>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="scrollToCalculators('futures')" class="p-2.5 bg-binance-bgDark hover:bg-gray-800 border border-gray-800 hover:border-binance-gold/30 rounded-lg transition text-left">
+                        <i class="fa-solid fa-bolt text-binance-gold text-xs block mb-1"></i>
+                        <span class="text-[11px] font-bold text-white block">Calc. Futuros</span>
+                    </button>
+                    <button onclick="scrollToCalculators('p2p')" class="p-2.5 bg-binance-bgDark hover:bg-gray-800 border border-gray-800 hover:border-binance-gold/30 rounded-lg transition text-left">
+                        <i class="fa-solid fa-handshake text-indigo-400 text-xs block mb-1"></i>
+                        <span class="text-[11px] font-bold text-white block">Spread P2P</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- CORE CONTENT (SPAN 9 on desktop) -->
+        <div class="lg:col-span-9 flex flex-col gap-6">
+            
+            <!-- CURRENT RAMA / BRANCH TITLE CARD -->
+            <div class="bg-gradient-to-r from-binance-cardDark to-binance-bgDark border border-gray-800 rounded-xl p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <span class="text-[10px] uppercase font-mono tracking-widest text-binance-gold font-semibold bg-binance-gold/10 px-2.5 py-0.5 rounded border border-binance-gold/20 mb-1.5 inline-block" id="branch-type-badge">FUTUROS</span>
+                    <h2 class="text-2xl font-black text-white" id="current-branch-name">Futuros Binance</h2>
+                    <p class="text-xs text-binance-textMuted mt-0.5" id="current-branch-desc">Registro operacional para apalancamientos, coberturas y scalping de criptoactivos.</p>
+                </div>
+                <!-- Delete current branch option -->
+                <button id="btn-delete-branch" onclick="confirmDeleteJob()" class="hidden text-xs text-binance-textMuted hover:text-binance-loss transition border border-gray-800 hover:border-binance-loss/20 px-3 py-1.5 rounded-lg bg-binance-cardDark">
+                    <i class="fa-solid fa-trash mr-1"></i> Eliminar Job Actual
+                </button>
+            </div>
+
+            <!-- KEY PERFORMANCE METRICS BAR -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <!-- Card: Starting balance -->
+                <div class="bg-binance-cardDark border border-gray-800 rounded-xl p-4 shadow-sm relative overflow-hidden">
+                    <div class="absolute right-3 top-3 opacity-10 text-gray-400 text-xl"><i class="fa-solid fa-coins"></i></div>
+                    <p class="text-[10px] text-binance-textMuted uppercase font-bold tracking-wider">Capital Inicial</p>
+                    <p class="text-lg font-black font-mono mt-1 text-white" id="metric-start">$0.00</p>
+                    <span class="text-[10px] text-binance-textMuted">Configurado a mano</span>
+                </div>
+                <!-- Card: Current Balance -->
+                <div class="bg-binance-cardDark border border-gray-800 rounded-xl p-4 shadow-sm relative overflow-hidden">
+                    <div class="absolute right-3 top-3 opacity-10 text-gray-400 text-xl"><i class="fa-solid fa-vault"></i></div>
+                    <p class="text-[10px] text-binance-textMuted uppercase font-bold tracking-wider font-semibold">Balance Estimado</p>
+                    <p class="text-lg font-black font-mono mt-1 text-white" id="metric-current">$0.00</p>
+                    <span class="text-[10px] text-binance-textMuted">Inicial + Neto P&L</span>
+                </div>
+                <!-- Card: Net ROI -->
+                <div class="bg-binance-cardDark border border-gray-800 rounded-xl p-4 shadow-sm relative overflow-hidden">
+                    <div class="absolute right-3 top-3 opacity-10 text-gray-400 text-xl"><i class="fa-solid fa-percent"></i></div>
+                    <p class="text-[10px] text-binance-textMuted uppercase font-bold tracking-wider">Retorno (ROI)</p>
+                    <p class="text-lg font-black font-mono mt-1" id="metric-roi">0.00%</p>
+                    <span class="text-[10px] text-binance-textMuted">Tasa de rendimiento</span>
+                </div>
+                <!-- Card: Win Rate -->
+                <div class="bg-binance-cardDark border border-gray-800 rounded-xl p-4 shadow-sm relative overflow-hidden">
+                    <div class="absolute right-3 top-3 opacity-10 text-gray-400 text-xl"><i class="fa-solid fa-trophy"></i></div>
+                    <p class="text-[10px] text-binance-textMuted uppercase font-bold tracking-wider">Acierto (Win Rate)</p>
+                    <p class="text-lg font-black font-mono mt-1 text-binance-gold" id="metric-winrate">0%</p>
+                    <span class="text-[10px] text-binance-textMuted" id="metric-winratio">0W - 0L</span>
+                </div>
+            </div>
+
+            <!-- LIVE MOVEMENT ADDER & GRAPHICS -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                <!-- ADD MOVEMENT FORM (Left section, span 5) -->
+                <div class="lg:col-span-5 bg-binance-cardDark border border-gray-800 rounded-xl p-5 flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-1.5">
+                            <i class="fa-solid fa-circle-plus text-binance-gold"></i> Registrar Movimiento
+                        </h3>
+                        
+                        <form id="form-transaction" onsubmit="addTransaction(event)" class="space-y-4">
+                            <!-- Movement Type Tabs (Profit vs Loss) -->
+                            <div>
+                                <label class="block text-[11px] text-binance-textMuted mb-1.5 font-semibold">Tipo de Movimiento</label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <button type="button" onclick="setFormType('profit')" id="btn-type-profit" class="py-2 rounded-lg text-xs font-bold transition-all border border-binance-profit bg-binance-profit/10 text-binance-profit flex items-center justify-center gap-1.5">
+                                        <i class="fa-solid fa-circle-trend-up text-sm"></i> Ganancia
+                                    </button>
+                                    <button type="button" onclick="setFormType('loss')" id="btn-type-loss" class="py-2 rounded-lg text-xs font-bold transition-all border border-gray-800 hover:border-binance-loss text-binance-textMuted hover:text-binance-loss flex items-center justify-center gap-1.5">
+                                        <i class="fa-solid fa-circle-trend-down text-sm"></i> Pérdida
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Amount & Fees -->
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-[11px] text-binance-textMuted mb-1.5 font-semibold">Monto (USD/USDT)</label>
+                                    <input type="number" step="any" required id="form-amount" class="w-full bg-binance-inputDark border border-gray-800 focus:border-binance-gold rounded-lg p-2.5 text-xs text-white focus:outline-none transition font-mono" placeholder="0.00">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] text-binance-textMuted mb-1.5 font-semibold">Comisión (FEE)</label>
+                                    <input type="number" step="any" id="form-fee" class="w-full bg-binance-inputDark border border-gray-800 focus:border-binance-gold rounded-lg p-2.5 text-xs text-white focus:outline-none transition font-mono" placeholder="0.00">
+                                </div>
+                            </div>
+
+                            <!-- DYNAMIC FIELDS BASED ON BRANCH TYPE -->
+                            <div class="p-3 bg-binance-bgDark/60 rounded-lg border border-gray-800/80 space-y-3" id="branch-dynamic-fields">
+                                <div id="fields-futures">
+                                    <label class="block text-[11px] text-binance-textMuted mb-1.5 font-semibold">Apalancamiento Operado</label>
+                                    <div class="flex items-center space-x-2">
+                                        <input type="range" min="1" max="125" value="20" id="form-leverage-slider" oninput="document.getElementById('leverage-val').textContent = this.value + 'x'" class="w-full h-1 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-binance-gold">
+                                        <span id="leverage-val" class="text-xs font-mono font-bold text-binance-gold bg-binance-gold/15 px-2 py-0.5 rounded border border-binance-gold/20 shrink-0">20x</span>
+                                    </div>
+                                </div>
+                                <div id="fields-p2p" class="hidden">
+                                    <label class="block text-[11px] text-binance-textMuted mb-1.5 font-semibold">Banco / Método de Pago Usado</label>
+                                    <input type="text" id="form-p2p-bank" class="w-full bg-binance-inputDark border border-gray-800 focus:border-binance-gold rounded-lg p-2.5 text-xs text-white focus:outline-none transition" placeholder="Ej. Banesco, Pago Móvil, Banco de Venezuela">
+                                </div>
+                            </div>
+
+                            <!-- Notes and Description -->
+                            <div>
+                                <label class="block text-[11px] text-binance-textMuted mb-1.5 font-semibold">Nota o Par de Trading</label>
+                                <input type="text" id="form-notes" class="w-full bg-binance-inputDark border border-gray-800 focus:border-binance-gold rounded-lg p-2.5 text-xs text-white focus:outline-none transition" placeholder="Ej. Long BTC 20x Scalping / Compra USDT premium">
+                            </div>
+
+                            <button type="submit" class="w-full bg-binance-gold hover:bg-binance-goldHover text-binance-bgDark text-xs font-bold py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 mt-2">
+                                <i class="fa-solid fa-circle-check"></i>
+                                <span>Agregar a la Bitácora</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- ANALYTICS CHARTS (Right section, span 7) -->
+                <div class="lg:col-span-7 flex flex-col gap-4">
+                    <!-- Visual Charts Card -->
+                    <div class="bg-binance-cardDark border border-gray-800 rounded-xl p-5 h-full flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-xs font-bold uppercase text-binance-textMuted tracking-wider flex items-center gap-1.5">
+                                <i class="fa-solid fa-chart-line text-cyan-400"></i> Gráfico de Curva Patrimonial y Desempeño
+                            </h3>
+                            <span class="text-[10px] text-binance-textMuted">Histórico de PnL</span>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center flex-1">
+                            <!-- Line Chart (Cumulative Equity) -->
+                            <div class="md:col-span-8 h-48 flex items-center justify-center relative">
+                                <canvas id="chart-equity-curve"></canvas>
+                            </div>
+                            <!-- Small Pie Chart (Win vs Loss count) -->
+                            <div class="md:col-span-4 h-48 flex flex-col items-center justify-center relative border-t md:border-t-0 md:border-l border-gray-800/80 pt-4 md:pt-0 md:pl-4">
+                                <p class="text-[10px] text-binance-textMuted font-bold uppercase mb-2">Distribución W/L</p>
+                                <div class="w-32 h-32 relative">
+                                    <canvas id="chart-win-loss"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- TRANSACTION HISTORY LEDGER TABLE -->
+            <div class="bg-binance-cardDark border border-gray-800 rounded-xl p-5">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+                    <div>
+                        <h3 class="text-sm font-bold text-white flex items-center gap-1.5">
+                            <i class="fa-solid fa-table-list text-binance-gold"></i> Historial de Movimientos Operativos
+                        </h3>
+                        <p class="text-xs text-binance-textMuted mt-0.5">Bitácora cronológica con detalle de operaciones realizadas en este Job.</p>
+                    </div>
+
+                    <!-- Filter Options -->
+                    <div class="flex items-center space-x-2 w-full sm:w-auto">
+                        <select id="filter-type" onchange="renderHistory()" class="bg-binance-inputDark border border-gray-800 text-xs text-white rounded-lg p-2 focus:outline-none focus:border-binance-gold w-full sm:w-auto">
+                            <option value="all">Todos los Movimientos</option>
+                            <option value="profit">Solo Ganancias</option>
+                            <option value="loss">Solo Pérdidas</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Ledger list representation with responsive behavior -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs min-w-[600px] hidden md:table">
+                        <thead>
+                            <tr class="border-b border-gray-800 text-binance-textMuted uppercase text-[10px] font-bold">
+                                <th class="pb-3 pt-1">Fecha</th>
+                                <th class="pb-3 pt-1">Tipo</th>
+                                <th class="pb-3 pt-1">Monto Neto</th>
+                                <th class="pb-3 pt-1">Comisión</th>
+                                <th class="pb-3 pt-1">Detalle / Notas</th>
+                                <th class="pb-3 pt-1">Variables</th>
+                                <th class="pb-3 pt-1 text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ledger-table-body" class="divide-y divide-gray-800/50">
+                            <!-- Rendered dynamically -->
+                        </tbody>
+                    </table>
+
+                    <!-- Mobile responsive grid list (Visible on small screens only) -->
+                    <div id="ledger-mobile-list" class="block md:hidden space-y-3">
+                        <!-- Rendered dynamically -->
+                    </div>
+                </div>
+
+                <!-- Empty list alert -->
+                <div id="ledger-empty-state" class="hidden text-center py-8 text-binance-textMuted text-xs flex flex-col items-center justify-center gap-2">
+                    <i class="fa-solid fa-folder-open text-3xl opacity-30"></i>
+                    <span>Aún no tienes movimientos en este Job. ¡Ingresa tu primera operación!</span>
+                </div>
+            </div>
+
+            <!-- PERMANENT LANDING SUPPORT CALCULATORS SECTION (STACKED VERTICALLY) -->
+            <div id="landing-calculators-section" class="flex flex-col gap-6 pt-2">
+                
+                <!-- FUTURES CALCULATOR PANEL -->
+                <div id="futures-calculator-card" class="bg-binance-cardDark border border-binance-gold/20 rounded-xl p-5 md:p-6 shadow-2xl transition-all duration-300 hover:border-binance-gold/40">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5 border-b border-gray-800 pb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2.5 bg-binance-gold/10 text-binance-gold rounded-lg border border-binance-gold/20">
+                                <i class="fa-solid fa-bolt text-lg"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-bold text-white">Calculadora de Futuros (Riesgo y Margen)</h4>
+                                <p class="text-xs text-binance-textMuted">Simula el tamaño de posición, PnL aproximado y tu precio de liquidación.</p>
+                            </div>
+                        </div>
+                        <span class="self-start md:self-center text-[10px] font-mono font-bold bg-binance-gold/15 text-binance-gold px-2.5 py-1 rounded border border-binance-gold/25 uppercase">Apalancamiento Directo</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                        <!-- Input fields (Left side / Span 8) -->
+                        <div class="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-binance-textMuted text-xs mb-1.5 font-semibold">Margen / Colateral (USD)</label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-2.5 text-xs text-binance-textMuted font-mono">$</span>
+                                    <input type="number" id="calc-fut-margin" value="100" oninput="runFuturesCalc()" class="w-full bg-binance-inputDark border border-gray-800 focus:border-binance-gold rounded-lg py-2 pl-7 pr-3 text-xs text-white font-mono focus:outline-none transition">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-binance-textMuted text-xs mb-1.5 font-semibold">Apalancamiento (X)</label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-2.5 text-xs text-binance-textMuted font-mono">X</span>
+                                    <input type="number" id="calc-fut-lev" value="20" oninput="runFuturesCalc()" class="w-full bg-binance-inputDark border border-gray-800 focus:border-binance-gold rounded-lg py-2 pl-7 pr-3 text-xs text-white font-mono focus:outline-none transition">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-binance-textMuted text-xs mb-1.5 font-semibold">Precio de Entrada (USD)</label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-2.5 text-xs text-binance-textMuted font-mono">$</span>
+                                    <input type="number" id="calc-fut-entry" value="65000" oninput="runFuturesCalc()" class="w-full bg-binance-inputDark border border-gray-800 focus:border-binance-gold rounded-lg py-2 pl-7 pr-3 text-xs text-white font-mono focus:outline-none transition">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-binance-textMuted text-xs mb-1.5 font-semibold">Precio Objetivo (USD)</label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-2.5 text-xs text-binance-textMuted font-mono">$</span>
+                                    <input type="number" id="calc-fut-exit" value="66500" oninput="runFuturesCalc()" class="w-full bg-binance-inputDark border border-gray-800 focus:border-binance-gold rounded-lg py-2 pl-7 pr-3 text-xs text-white font-mono focus:outline-none transition">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Results Dashboard (Right side / Span 4) -->
+                        <div class="lg:col-span-4 bg-binance-bgDark/80 p-5 rounded-xl border border-gray-800 flex flex-col gap-4 font-mono">
+                            <div class="border-b border-gray-800/60 pb-3">
+                                <p class="text-[10px] text-binance-textMuted uppercase font-bold tracking-wider">Tamaño de Posición</p>
+                                <p id="calc-fut-pos" class="text-base font-black text-white mt-0.5">$2,000.00</p>
+                            </div>
+                            <div class="border-b border-gray-800/60 pb-3">
+                                <p class="text-[10px] text-binance-textMuted uppercase font-bold tracking-wider">PnL Estimado</p>
+                                <p id="calc-fut-pnl" class="text-base font-black text-binance-profit mt-0.5">+$46.15</p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] text-binance-textMuted uppercase font-bold tracking-wider">Precio Liquidación (Est. Long)</p>
+                                <p id="calc-fut-liq" class="text-base font-black text-binance-loss mt-0.5">$61,750.00</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- P2P SPREAD CALCULATOR PANEL -->
+                <div id="p2p-calculator-card" class="bg-binance-cardDark border border-indigo-500/20 rounded-xl p-5 md:p-6 shadow-2xl transition-all duration-300 hover:border-indigo-500/40">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5 border-b border-gray-800 pb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2.5 bg-indigo-500/10 text-indigo-400 rounded-lg border border-indigo-500/20">
+                                <i class="fa-solid fa-handshake text-lg"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-bold text-white">Calculadora de Spread P2P (Bolívares / USDT)</h4>
+                                <p class="text-xs text-binance-textMuted">Optimiza tus márgenes de arbitraje descontando comisiones de anuncio y banco local.</p>
+                            </div>
+                        </div>
+                        <span class="self-start md:self-center text-[10px] font-mono font-bold bg-indigo-500/15 text-indigo-400 px-2.5 py-1 rounded border border-indigo-500/25 uppercase">Ciclo de Arbitraje Local</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                        <!-- Input fields (Left side / Span 8) -->
+                        <div class="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+                            <div>
+                                <label class="block text-binance-textMuted text-xs mb-1.5 font-semibold">Precio Compra (Bs/USDT)</label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-2.5 text-[10px] text-binance-textMuted font-mono">Bs</span>
+                                    <input type="number" id="calc-p2p-buy" value="40.20" step="any" oninput="runP2pCalc()" class="w-full bg-binance-inputDark border border-gray-800 focus:border-indigo-500 rounded-lg py-2 pl-8 pr-3 text-xs text-white font-mono focus:outline-none transition">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-binance-textMuted text-xs mb-1.5 font-semibold">Precio Venta (Bs/USDT)</label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-2.5 text-[10px] text-binance-textMuted font-mono">Bs</span>
+                                    <input type="number" id="calc-p2p-sell" value="41.10" step="any" oninput="runP2pCalc()" class="w-full bg-binance-inputDark border border-gray-800 focus:border-indigo-500 rounded-lg py-2 pl-8 pr-3 text-xs text-white font-mono focus:outline-none transition">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-binance-textMuted text-xs mb-1.5 font-semibold">Inversión Inicial (USDT)</label>
+                                <div class="relative">
+                                    <span class="absolute right-3 top-2.5 text-[10px] text-binance-textMuted font-mono">USDT</span>
+                                    <input type="number" id="calc-p2p-cap" value="500" step="any" oninput="runP2pCalc()" class="w-full bg-binance-inputDark border border-gray-800 focus:border-indigo-500 rounded-lg py-2 pl-3 pr-12 text-xs text-white font-mono focus:outline-none transition">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-binance-textMuted text-xs mb-1.5 font-semibold">Comisión Anuncio (%)</label>
+                                <div class="relative">
+                                    <span class="absolute right-3 top-2.5 text-[10px] text-binance-textMuted font-mono">%</span>
+                                    <input type="number" id="calc-p2p-fee" value="0.1" step="0.01" oninput="runP2pCalc()" class="w-full bg-binance-inputDark border border-gray-800 focus:border-indigo-500 rounded-lg py-2 pl-3 pr-8 text-xs text-white font-mono focus:outline-none transition">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-binance-textMuted text-xs mb-1.5 font-semibold">Comisión Banco Local (%)</label>
+                                <div class="relative">
+                                    <span class="absolute right-3 top-2.5 text-[10px] text-binance-textMuted font-mono">%</span>
+                                    <input type="number" id="calc-p2p-bank-fee" value="0.3" step="0.01" oninput="runP2pCalc()" class="w-full bg-binance-inputDark border border-gray-800 focus:border-indigo-500 rounded-lg py-2 pl-3 pr-8 text-xs text-white font-mono focus:outline-none transition">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-binance-textMuted text-xs mb-1.5 font-semibold">Total Generado (Bs)</label>
+                                <input type="text" id="calc-p2p-total-bs" readonly class="w-full bg-binance-bgDark/60 border border-gray-800 text-binance-textMuted rounded-lg p-2 text-xs font-mono focus:outline-none cursor-not-allowed">
+                            </div>
+                        </div>
+
+                        <!-- Results Dashboard (Right side / Span 4) -->
+                        <div class="lg:col-span-4 bg-binance-bgDark/80 p-5 rounded-xl border border-gray-800 flex flex-col gap-4 font-mono">
+                            <div class="border-b border-gray-800/60 pb-3">
+                                <p class="text-[10px] text-binance-textMuted uppercase font-bold tracking-wider">Inversión Base</p>
+                                <p id="calc-p2p-cap-display" class="text-base font-black text-white mt-0.5">500.00 USDT</p>
+                            </div>
+                            <div class="border-b border-gray-800/60 pb-3">
+                                <p class="text-[10px] text-binance-textMuted uppercase font-bold tracking-wider">Comisiones Totales</p>
+                                <p id="calc-p2p-fees" class="text-base font-black text-binance-loss mt-0.5">1.0000 USDT</p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] text-binance-textMuted uppercase font-bold tracking-wider">Spread Neto Resultante</p>
+                                <p id="calc-p2p-spread" class="text-base font-black text-binance-profit mt-0.5">2.03% (+10.15 USDT)</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- FOOTER STATS INFO -->
+    <footer class="bg-binance-bgDark border-t border-gray-800 py-6 text-center text-xs text-binance-textMuted mt-auto shrink-0">
+        <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p>© 2026 GESTOR OPERACIONAL. Diseñado exclusivamente para analítica de Futuros & P2P.</p>
+            <div class="flex space-x-4">
+                <span class="flex items-center gap-1"><i class="fa-solid fa-shield-halved text-binance-gold"></i> Datos Guardados Logicamente de forma Privada</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- NEW BRANCH MODAL (CREAR NUEVA RAMA / NEW JOB) -->
+    <div id="branch-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-binance-cardDark border border-gray-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl transform scale-95 transition-all duration-200">
+            <!-- Modal Header -->
+            <div class="border-b border-gray-800 p-4 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-folder-plus text-binance-gold text-lg"></i>
+                    <h3 class="text-sm font-bold text-white">Registrar New Job</h3>
+                </div>
+                <button onclick="closeBranchModal()" class="text-binance-textMuted hover:text-white transition"><i class="fa-solid fa-xmark text-md"></i></button>
+            </div>
+
+            <!-- Modal Form -->
+            <form onsubmit="createNewBranch(event)" class="p-5 space-y-4">
+                <div>
+                    <label class="block text-xs text-binance-textMuted mb-1.5 font-medium">Nombre del Job / Cuenta</label>
+                    <input type="text" id="modal-branch-name" required placeholder="Ej. Trading Spot BTC, Arbitraje Bs" class="w-full bg-binance-inputDark border border-gray-800 focus:border-binance-gold rounded-lg p-2.5 text-xs text-white focus:outline-none transition">
+                </div>
+                <div>
+                    <label class="block text-xs text-binance-textMuted mb-1.5 font-medium">Tipo de Operación Principal</label>
+                    <select id="modal-branch-type" class="w-full bg-binance-inputDark border border-gray-800 focus:border-binance-gold rounded-lg p-2.5 text-xs text-white focus:outline-none transition">
+                        <option value="futuros">Futuros (Apalancamiento y Cobertura)</option>
+                        <option value="p2p">P2P (Compra/Venta en Banco local)</option>
+                        <option value="custom">Otro (Spot, Margin, Staking)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-binance-textMuted mb-1.5 font-medium">Saldo Inicial (USD/USDT)</label>
+                    <input type="number" step="any" id="modal-branch-balance" value="500" class="w-full bg-binance-inputDark border border-gray-800 focus:border-binance-gold rounded-lg p-2.5 text-xs text-white font-mono focus:outline-none transition">
+                </div>
+                
+                <div class="flex space-x-3 pt-2">
+                    <button type="button" onclick="closeBranchModal()" class="w-1/2 bg-gray-800 hover:bg-gray-700 text-white text-xs font-semibold py-2.5 rounded-lg transition">Cancelar</button>
+                    <button type="submit" class="w-1/2 bg-binance-gold hover:bg-binance-goldHover text-binance-bgDark text-xs font-bold py-2.5 rounded-lg transition">Crear Job</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- CUSTOM DOUBLE VERIFICATION RESET MODAL -->
+    <div id="reset-modal" class="hidden fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-binance-cardDark border border-red-500/20 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl p-6 relative">
+            
+            <!-- STEP 1 VIEW -->
+            <div id="reset-step-1" class="space-y-4">
+                <div class="flex items-center space-x-3 text-binance-loss">
+                    <i class="fa-solid fa-triangle-exclamation text-2xl"></i>
+                    <h3 class="text-base font-bold text-white">¿Reiniciar todos los datos?</h3>
+                </div>
+                <p class="text-xs text-binance-textMuted leading-relaxed">
+                    Esta acción restablecerá por completo tus Jobs, balances y comisiones a los valores iniciales de fábrica de la aplicación.
+                </p>
+                <div class="flex space-x-3 pt-2">
+                    <button onclick="closeDoubleResetModal()" class="w-1/2 bg-gray-800 hover:bg-gray-700 text-white text-xs font-semibold py-2 rounded-lg transition">
+                        Cancelar
+                    </button>
+                    <button onclick="goToResetStep2()" class="w-1/2 bg-binance-gold hover:bg-binance-goldHover text-binance-bgDark text-xs font-bold py-2 rounded-lg transition">
+                        Siguiente Paso
+                    </button>
+                </div>
+            </div>
+
+            <!-- STEP 2 VIEW (CRITICAL CONFIRMATION) -->
+            <div id="reset-step-2" class="hidden space-y-4">
+                <div class="flex items-center space-x-3 text-red-500">
+                    <i class="fa-solid fa-radiation text-2xl animate-spin"></i>
+                    <h3 class="text-base font-bold text-white">¡ADVERTENCIA CRÍTICA!</h3>
+                </div>
+                <p class="text-xs text-binance-textMuted leading-relaxed">
+                    Los datos eliminados <strong class="text-white">NO podrán ser recuperados</strong> de ninguna manera. ¿Estás completamente seguro de continuar con el borrado definitivo?
+                </p>
+                <div class="flex space-x-3 pt-2">
+                    <button onclick="closeDoubleResetModal()" class="w-1/2 bg-gray-800 hover:bg-gray-700 text-white text-xs font-semibold py-2 rounded-lg transition">
+                        ¡No, cancelar!
+                    </button>
+                    <button onclick="executeDataDestruction()" class="w-1/2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-2 rounded-lg transition shadow-lg shadow-red-600/30">
+                        Sí, destruir todo
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- CUSTOM JOB DELETE MODAL -->
+    <div id="delete-job-modal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-binance-cardDark border border-red-500/30 rounded-2xl w-full max-sm p-6 space-y-4 shadow-2xl">
+            <div class="flex items-center space-x-2 text-binance-loss">
+                <i class="fa-solid fa-trash-can text-lg"></i>
+                <h3 class="text-sm font-bold text-white">Eliminar Job Actual</h3>
+            </div>
+            <p class="text-xs text-binance-textMuted" id="delete-job-warning-text">
+                ¿Estás seguro de que deseas eliminar este Job? Todo su historial de transacciones se perderá permanentemente.
+            </p>
+            <div class="flex space-x-3">
+                <button onclick="closeDeleteJobModal()" class="w-1/2 bg-gray-800 hover:bg-gray-700 text-white text-xs font-semibold py-2 rounded-lg transition">
+                    Cancelar
+                </button>
+                <button onclick="executeJobDeletion()" class="w-1/2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold py-2 rounded-lg transition">
+                    Confirmar Borrado
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION STACK -->
+    <div id="toast-bar" class="fixed bottom-6 right-6 transform translate-y-20 opacity-0 transition-all duration-300 bg-binance-cardDark border border-binance-gold/20 text-gray-100 px-4 py-3.5 rounded-xl shadow-2xl flex items-center space-x-3 z-50 max-w-sm">
+        <div class="bg-binance-gold text-binance-bgDark p-1.5 rounded-lg text-xs" id="toast-icon-bg">
+            <i class="fa-solid fa-bell" id="toast-icon"></i>
+        </div>
+        <div>
+            <p id="toast-message" class="text-xs font-bold leading-tight"></p>
+        </div>
+    </div>
+
+    <!-- CORE SYSTEM CONTROLLER (JAVASCRIPT) -->
+    <script>
+        let state = {
+            activeBranch: 'futuros',
+            formType: 'profit', 
+            branches: {
+                futuros: {
+                    id: 'futuros',
+                    name: 'Futuros Binance',
+                    type: 'futuros',
+                    desc: 'Registro operacional para apalancamientos, coberturas y scalping de criptoactivos.',
+                    initialBalance: 1000,
+                    transactions: [
+                        { id: 1, date: "2026-07-01T10:30:00", type: "profit", amount: 150, fee: 3.5, notes: "BTC Long 20x scalp exitoso", leverage: 20 },
+                        { id: 2, date: "2026-07-01T15:45:00", type: "loss", amount: 60, fee: 1.2, notes: "ETH Short stop loss alcanzado", leverage: 10 },
+                        { id: 3, date: "2026-07-02T09:00:00", type: "profit", amount: 280, fee: 5.6, notes: "SOL Long breakout diario", leverage: 20 }
+                    ]
+                },
+                p2p: {
+                    id: 'p2p',
+                    name: 'Binance P2P',
+                    type: 'p2p',
+                    desc: 'Arbitraje fiat local, cotizaciones en cuenta bancaria y remesas peer-to-peer.',
+                    initialBalance: 2500,
+                    transactions: [
+                        { id: 1, date: "2026-07-01T08:00:00", type: "profit", amount: 45, fee: 0, notes: "Venta USDT premium Pago Móvil", bank: "Pago Móvil" },
+                        { id: 2, date: "2026-07-01T12:30:00", type: "profit", amount: 24, fee: 0, notes: "Compra barata por Banesco", bank: "Banesco" },
+                        { id: 3, date: "2026-07-02T14:20:00", type: "loss", amount: 15, fee: 2.5, notes: "Diferencial de tasa bancaria o fee", bank: "Mercantil" }
+                    ]
+                }
+            }
+        };
+
+        let chartInstanceEquity = null;
+        let chartInstanceWinLoss = null;
+
+        function loadStorage() {
+            const localData = localStorage.getItem('trader_ledger_state_v26');
+            if (localData) {
+                try {
+                    state = JSON.parse(localData);
+                    state.formType = 'profit';
+                } catch (e) {
+                    console.error("Error reading stored cache, resetting...", e);
+                }
+            }
+        }
+
+        function saveToStorage() {
+            localStorage.setItem('trader_ledger_state_v26', JSON.stringify(state));
+        }
+
+        function formatVal(amount) {
+            const val = parseFloat(amount);
+            if (isNaN(val)) return "$0.00";
+            const prefix = val < 0 ? '-$' : '$';
+            return prefix + Math.abs(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function triggerToast(message, type = 'success') {
+            const toast = document.getElementById('toast-bar');
+            const iconBg = document.getElementById('toast-icon-bg');
+            const icon = document.getElementById('toast-icon');
+            const msgEl = document.getElementById('toast-message');
+
+            msgEl.textContent = message;
+
+            if (type === 'success') {
+                iconBg.className = "bg-binance-profit text-binance-bgDark p-1.5 rounded-lg text-xs";
+                icon.className = "fa-solid fa-circle-check";
+            } else if (type === 'warning') {
+                iconBg.className = "bg-binance-gold text-binance-bgDark p-1.5 rounded-lg text-xs";
+                icon.className = "fa-solid fa-triangle-exclamation";
+            } else {
+                iconBg.className = "bg-binance-loss text-white p-1.5 rounded-lg text-xs";
+                icon.className = "fa-solid fa-circle-xmark";
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+                toast.classList.remove('translate-y-0', 'opacity-100');
+            }, 3000);
+        }
+
+        function setFormType(type) {
+            state.formType = type;
+            const btnProfit = document.getElementById('btn-type-profit');
+            const btnLoss = document.getElementById('btn-type-loss');
+
+            if (type === 'profit') {
+                btnProfit.className = "py-2 rounded-lg text-xs font-bold transition-all border border-binance-profit bg-binance-profit/10 text-binance-profit flex items-center justify-center gap-1.5";
+                btnLoss.className = "py-2 rounded-lg text-xs font-bold transition-all border border-gray-800 hover:border-binance-loss text-binance-textMuted hover:text-binance-loss flex items-center justify-center gap-1.5";
+            } else {
+                btnProfit.className = "py-2 rounded-lg text-xs font-bold transition-all border border-gray-800 hover:border-binance-profit text-binance-textMuted hover:text-binance-profit flex items-center justify-center gap-1.5";
+                btnLoss.className = "py-2 rounded-lg text-xs font-bold transition-all border border-binance-loss bg-binance-loss/10 text-binance-loss flex items-center justify-center gap-1.5";
+            }
+        }
+
+        function addTransaction(e) {
+            e.preventDefault();
+            const activeBranch = state.branches[state.activeBranch];
+            const amountInput = document.getElementById('form-amount');
+            const feeInput = document.getElementById('form-fee');
+            const notesInput = document.getElementById('form-notes');
+            
+            const amount = parseFloat(amountInput.value);
+            const fee = parseFloat(feeInput.value) || 0;
+            const notes = notesInput.value.trim() || (state.formType === 'profit' ? 'Ganancia sin detalles' : 'Pérdida sin detalles');
+
+            if (isNaN(amount) || amount <= 0) {
+                triggerToast('Por favor introduce un monto válido superior a cero.', 'error');
+                return;
+            }
+
+            const tx = {
+                id: Date.now(),
+                date: new Date().toISOString(),
+                type: state.formType,
+                amount: amount,
+                fee: fee,
+                notes: notes
+            };
+
+            if (activeBranch.type === 'futuros') {
+                const leverageVal = parseInt(document.getElementById('form-leverage-slider').value);
+                tx.leverage = leverageVal;
+            } else if (activeBranch.type === 'p2p') {
+                const bankVal = document.getElementById('form-p2p-bank').value.trim();
+                tx.bank = bankVal || 'No especificado';
+            }
+
+            activeBranch.transactions.unshift(tx); 
+            saveToStorage();
+            
+            amountInput.value = '';
+            feeInput.value = '';
+            notesInput.value = '';
+            if (document.getElementById('form-p2p-bank')) {
+                document.getElementById('form-p2p-bank').value = '';
+            }
+
+            triggerToast('Movimiento añadido con éxito a la bitácora!');
+            updateWorkspace();
+        }
+
+        function deleteTransaction(txId) {
+            const activeBranch = state.branches[state.activeBranch];
+            activeBranch.transactions = activeBranch.transactions.filter(t => t.id !== txId);
+            saveToStorage();
+            triggerToast('Movimiento eliminado correctamente', 'warning');
+            updateWorkspace();
+        }
+
+        function createNewBranch(e) {
+            e.preventDefault();
+            const name = document.getElementById('modal-branch-name').value.trim();
+            const type = document.getElementById('modal-branch-type').value;
+            const bal = parseFloat(document.getElementById('modal-branch-balance').value) || 0;
+
+            if (!name) {
+                triggerToast('Por favor pon un nombre descriptivo al nuevo Job.', 'error');
+                return;
+            }
+
+            const id = 'custom_' + Date.now();
+            let desc = "Portafolio y calculadora operacional personalizada.";
+            if (type === 'futuros') desc = "Registro de derivados financieros apalancados.";
+            if (type === 'p2p') desc = "Arbitraje de compra y venta directa con cuentas aliadas.";
+
+            state.branches[id] = {
+                id: id,
+                name: name,
+                type: type,
+                desc: desc,
+                initialBalance: bal,
+                transactions: []
+            };
+
+            state.activeBranch = id;
+            saveToStorage();
+            closeBranchModal();
+            triggerToast(`¡Job "${name}" creado y seleccionado!`);
+            updateWorkspace();
+        }
+
+        function confirmDeleteJob() {
+            if (state.activeBranch === 'futuros' || state.activeBranch === 'p2p') {
+                triggerToast('No puedes eliminar los Jobs principales por defecto.', 'error');
+                return;
+            }
+            const activeBranch = state.branches[state.activeBranch];
+            document.getElementById('delete-job-warning-text').innerHTML = `¿Estás seguro de que deseas eliminar el Job <strong class="text-binance-gold">"${activeBranch.name}"</strong>? Todos sus registros se perderán de forma permanente.`;
+            document.getElementById('delete-job-modal').classList.remove('hidden');
+        }
+
+        function closeDeleteJobModal() {
+            document.getElementById('delete-job-modal').classList.add('hidden');
+        }
+
+        function executeJobDeletion() {
+            const activeBranch = state.branches[state.activeBranch];
+            const name = activeBranch.name;
+            delete state.branches[state.activeBranch];
+            state.activeBranch = 'futuros'; 
+            saveToStorage();
+            closeDeleteJobModal();
+            triggerToast(`Job "${name}" eliminado correctamente`, 'warning');
+            updateWorkspace();
+        }
+
+        function openDoubleResetModal() {
+            document.getElementById('reset-modal').classList.remove('hidden');
+            document.getElementById('reset-step-1').classList.remove('hidden');
+            document.getElementById('reset-step-2').classList.add('hidden');
+        }
+
+        function closeDoubleResetModal() {
+            document.getElementById('reset-modal').classList.add('hidden');
+        }
+
+        function goToResetStep2() {
+            document.getElementById('reset-step-1').classList.add('hidden');
+            document.getElementById('reset-step-2').classList.remove('hidden');
+        }
+
+        function executeDataDestruction() {
+            localStorage.removeItem('trader_ledger_state_v26');
+            closeDoubleResetModal();
+            triggerToast('Restableciendo base de datos...', 'warning');
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        }
+
+        function updateInitialBalance(val) {
+            const value = parseFloat(val) || 0;
+            state.branches[state.activeBranch].initialBalance = value;
+            saveToStorage();
+            updateWorkspace();
+        }
+
+        function openBranchModal() {
+            document.getElementById('branch-modal').classList.remove('hidden');
+        }
+        function closeBranchModal() {
+            document.getElementById('branch-modal').classList.add('hidden');
+        }
+
+        function setBranch(branchId) {
+            state.activeBranch = branchId;
+            updateWorkspace();
+        }
+
+        function scrollToCalculators(type) {
+            const element = document.getElementById(type === 'futures' ? 'futures-calculator-card' : 'p2p-calculator-card');
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                element.classList.add('ring-2', 'ring-binance-gold');
+                setTimeout(() => {
+                    element.classList.remove('ring-2', 'ring-binance-gold');
+                }, 1500);
+                triggerToast('Desplazado a la herramienta de cálculo.', 'success');
+            }
+        }
+
+        function runFuturesCalc() {
+            const margin = parseFloat(document.getElementById('calc-fut-margin').value) || 0;
+            const lev = parseFloat(document.getElementById('calc-fut-lev').value) || 1;
+            const entry = parseFloat(document.getElementById('calc-fut-entry').value) || 1;
+            const exit = parseFloat(document.getElementById('calc-fut-exit').value) || 1;
+
+            const posSize = margin * lev;
+            const contracts = posSize / entry;
+            const diff = exit - entry;
+            const pnl = contracts * diff;
+
+            const liqPrice = entry * (1 - (1 / lev));
+
+            document.getElementById('calc-fut-pos').textContent = formatVal(posSize);
+            
+            const pnlEl = document.getElementById('calc-fut-pnl');
+            pnlEl.textContent = (pnl >= 0 ? '+' : '') + formatVal(pnl);
+            if (pnl >= 0) {
+                pnlEl.className = "text-base font-black text-binance-profit mt-0.5";
+            } else {
+                pnlEl.className = "text-base font-black text-binance-loss mt-0.5";
+            }
+
+            document.getElementById('calc-fut-liq').textContent = formatVal(liqPrice);
+        }
+
+        function runP2pCalc() {
+            const buyPriceBs = parseFloat(document.getElementById('calc-p2p-buy').value) || 0;
+            const sellPriceBs = parseFloat(document.getElementById('calc-p2p-sell').value) || 0;
+            const capitalUSDT = parseFloat(document.getElementById('calc-p2p-cap').value) || 0;
+            const feePercent = parseFloat(document.getElementById('calc-p2p-fee').value) || 0;
+            const bankFeePercent = parseFloat(document.getElementById('calc-p2p-bank-fee').value) || 0;
+
+            const totalBs = sellPriceBs * capitalUSDT;
+            document.getElementById('calc-p2p-total-bs').value = totalBs.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " Bs";
+
+            if (capitalUSDT <= 0 || buyPriceBs <= 0 || sellPriceBs <= 0) {
+                document.getElementById('calc-p2p-cap-display').textContent = "0.00 USDT";
+                document.getElementById('calc-p2p-fees').textContent = "0.0000 USDT";
+                document.getElementById('calc-p2p-spread').textContent = "0.00% (+0.00 USDT)";
+                return;
+            }
+
+            // Arbitrage cycle
+            const sellFeeUSDT = capitalUSDT * (feePercent / 100);
+            const netUSDTToSell = capitalUSDT - sellFeeUSDT;
+            const bsReceived = netUSDTToSell * sellPriceBs;
+
+            const bankFeeBs = bsReceived * (bankFeePercent / 100);
+            const netBsToInvest = bsReceived - bankFeeBs;
+
+            const grossUSDTBought = netBsToInvest / buyPriceBs;
+            const buyFeeUSDT = grossUSDTBought * (feePercent / 100);
+            const netUSDTBoughtBack = grossUSDTBought - buyFeeUSDT;
+
+            const bankFeeInUSDT = bankFeeBs / buyPriceBs;
+            const totalFeesPaidUSDT = sellFeeUSDT + buyFeeUSDT + bankFeeInUSDT;
+            const netProfitUSDT = netUSDTBoughtBack - capitalUSDT;
+            const spreadPercent = (netProfitUSDT / capitalUSDT) * 100;
+
+            document.getElementById('calc-p2p-cap-display').textContent = capitalUSDT.toFixed(2) + " USDT";
+            
+            document.getElementById('calc-p2p-fees').innerHTML = `
+                ${totalFeesPaidUSDT.toFixed(4)} USDT
+                <span class="block text-[10px] text-binance-textMuted font-normal mt-0.5">(Banco: ${bankFeeBs.toFixed(2)} Bs)</span>
+            `;
+            
+            const spreadEl = document.getElementById('calc-p2p-spread');
+            spreadEl.textContent = spreadPercent.toFixed(2) + "% (" + (netProfitUSDT >= 0 ? '+' : '') + netProfitUSDT.toFixed(2) + " USDT)";
+            if (netProfitUSDT >= 0) {
+                spreadEl.className = "text-base font-black text-binance-profit mt-0.5";
+            } else {
+                spreadEl.className = "text-base font-black text-binance-loss mt-0.5";
+            }
+        }
+
+        function updateWorkspace() {
+            const activeBranch = state.branches[state.activeBranch];
+
+            const formFutures = document.getElementById('fields-futures');
+            const formP2p = document.getElementById('fields-p2p');
+            
+            if (activeBranch.type === 'futuros') {
+                formFutures.classList.remove('hidden');
+                formP2p.classList.add('hidden');
+                document.getElementById('branch-type-badge').textContent = "FUTUROS";
+                document.getElementById('branch-type-badge').className = "text-[10px] uppercase font-mono tracking-widest text-binance-gold font-semibold bg-binance-gold/10 px-2.5 py-0.5 rounded border border-binance-gold/20 mb-1.5 inline-block";
+            } else if (activeBranch.type === 'p2p') {
+                formFutures.classList.add('hidden');
+                formP2p.classList.remove('hidden');
+                document.getElementById('branch-type-badge').textContent = "P2P TRADING";
+                document.getElementById('branch-type-badge').className = "text-[10px] uppercase font-mono tracking-widest text-indigo-400 font-semibold bg-indigo-500/10 px-2.5 py-0.5 rounded border border-indigo-500/20 mb-1.5 inline-block";
+            } else {
+                formFutures.classList.add('hidden');
+                formP2p.classList.add('hidden');
+                document.getElementById('branch-type-badge').textContent = "PERSONALIZADA";
+                document.getElementById('branch-type-badge').className = "text-[10px] uppercase font-mono tracking-widest text-cyan-400 font-semibold bg-cyan-500/10 px-2.5 py-0.5 rounded border border-cyan-500/20 mb-1.5 inline-block";
+            }
+
+            document.getElementById('current-branch-name').textContent = activeBranch.name;
+            document.getElementById('current-branch-desc').textContent = activeBranch.desc;
+            
+            const delBtn = document.getElementById('btn-delete-branch');
+            if (activeBranch.id === 'futuros' || activeBranch.id === 'p2p') {
+                delBtn.classList.add('hidden');
+            } else {
+                delBtn.classList.remove('hidden');
+            }
+
+            const initialBalanceInput = document.getElementById('input-initial-balance');
+            initialBalanceInput.value = activeBranch.initialBalance;
+
+            let totalProfit = 0;
+            let totalLoss = 0;
+            let totalFees = 0;
+            let winCount = 0;
+            let lossCount = 0;
+
+            activeBranch.transactions.forEach(tx => {
+                const netAmount = parseFloat(tx.amount);
+                const fee = parseFloat(tx.fee) || 0;
+                totalFees += fee;
+
+                if (tx.type === 'profit') {
+                    totalProfit += netAmount;
+                    winCount++;
+                } else if (tx.type === 'loss') {
+                    totalLoss += netAmount;
+                    lossCount++;
+                }
+            });
+
+            const netPnL = totalProfit - totalLoss - totalFees;
+            const currentBalance = activeBranch.initialBalance + netPnL;
+            
+            let roi = 0;
+            if (activeBranch.initialBalance > 0) {
+                roi = (netPnL / activeBranch.initialBalance) * 100;
+            }
+
+            const totalOperations = winCount + lossCount;
+            const winRate = totalOperations > 0 ? ((winCount / totalOperations) * 100) : 0;
+
+            document.getElementById('metric-start').textContent = formatVal(activeBranch.initialBalance);
+            document.getElementById('metric-current').textContent = formatVal(currentBalance);
+            
+            const pnlLabel = document.getElementById('label-net-pnl');
+            pnlLabel.textContent = (netPnL >= 0 ? '+' : '') + formatVal(netPnL);
+            if (netPnL >= 0) {
+                pnlLabel.className = "text-lg font-bold font-mono text-binance-profit";
+            } else {
+                pnlLabel.className = "text-lg font-bold font-mono text-binance-loss";
+            }
+
+            const roiLabel = document.getElementById('metric-roi');
+            roiLabel.textContent = (roi >= 0 ? '+' : '') + roi.toFixed(2) + "%";
+            if (roi >= 0) {
+                roiLabel.className = "text-lg font-black font-mono mt-1 text-binance-profit";
+            } else {
+                roiLabel.className = "text-lg font-black font-mono mt-1 text-binance-loss";
+            }
+
+            document.getElementById('metric-winrate').textContent = winRate.toFixed(1) + "%";
+            document.getElementById('metric-winratio').textContent = `${winCount}W - ${lossCount}L`;
+
+            renderBranchTabs();
+            renderHistory();
+            renderCharts(activeBranch.initialBalance, activeBranch.transactions);
+            
+            runFuturesCalc();
+            runP2pCalc();
+        }
+
+        function renderBranchTabs() {
+            const container = document.getElementById('branch-tabs-container');
+            container.innerHTML = '';
+
+            let counter = 0;
+            Object.values(state.branches).forEach(br => {
+                counter++;
+                const isSelected = br.id === state.activeBranch;
+                
+                let icon = 'fa-solid fa-chart-line text-gray-400';
+                if (br.type === 'futuros') icon = 'fa-solid fa-bolt text-binance-gold';
+                if (br.type === 'p2p') icon = 'fa-solid fa-handshake text-indigo-400';
+
+                const tab = document.createElement('button');
+                tab.onclick = () => setBranch(br.id);
+                tab.className = `w-full text-left p-2.5 rounded-lg border flex items-center justify-between transition-all duration-200 ${
+                    isSelected 
+                    ? 'border-binance-gold bg-binance-gold/10' 
+                    : 'border-gray-800 bg-binance-bgDark/40 hover:bg-binance-bgDark'
+                }`;
+
+                let bPnL = 0;
+                br.transactions.forEach(t => {
+                    const amt = parseFloat(t.amount);
+                    const fee = parseFloat(t.fee) || 0;
+                    bPnL += t.type === 'profit' ? (amt - fee) : (-amt - fee);
+                });
+                const estCurrent = br.initialBalance + bPnL;
+
+                tab.innerHTML = `
+                    <div class="flex items-center space-x-2.5 min-w-0">
+                        <i class="${icon} text-sm"></i>
+                        <div class="truncate">
+                            <div class="font-bold text-xs ${isSelected ? 'text-binance-gold' : 'text-gray-300'} truncate">${br.name}</div>
+                            <div class="text-[10px] text-binance-textMuted font-mono">Cap: ${formatVal(estCurrent)}</div>
+                        </div>
+                    </div>
+                    ${isSelected ? '<i class="fa-solid fa-circle-check text-binance-gold text-xs"></i>' : ''}
+                `;
+                container.appendChild(tab);
+            });
+
+            document.getElementById('branch-count').textContent = counter;
+        }
+
+        function renderHistory() {
+            const activeBranch = state.branches[state.activeBranch];
+            const filter = document.getElementById('filter-type').value;
+            const tableBody = document.getElementById('ledger-table-body');
+            const mobileList = document.getElementById('ledger-mobile-list');
+            const emptyState = document.getElementById('ledger-empty-state');
+
+            tableBody.innerHTML = '';
+            mobileList.innerHTML = '';
+
+            let filteredTx = activeBranch.transactions;
+            if (filter !== 'all') {
+                filteredTx = activeBranch.transactions.filter(t => t.type === filter);
+            }
+
+            if (filteredTx.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            filteredTx.forEach(tx => {
+                const dateObj = new Date(tx.date);
+                const readableDate = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                const isProfit = tx.type === 'profit';
+                const typeText = isProfit ? 'Ganancia' : 'Pérdida';
+                const typeClass = isProfit ? 'text-binance-profit bg-binance-profit/10 border-binance-profit/20' : 'text-binance-loss bg-binance-loss/10 border-binance-loss/20';
+                
+                let dynamicLabel = `<span class="text-binance-textMuted font-mono">N/A</span>`;
+                if (tx.leverage) {
+                    dynamicLabel = `<span class="text-[10px] font-mono font-bold text-binance-gold bg-binance-gold/10 px-2 py-0.5 rounded border border-binance-gold/20">Lev: ${tx.leverage}x</span>`;
+                } else if (tx.bank) {
+                    dynamicLabel = `<span class="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">${tx.bank}</span>`;
+                }
+
+                // Desktop structure
+                const row = document.createElement('tr');
+                row.className = "hover:bg-binance-bgDark/40 transition";
+                row.innerHTML = `
+                    <td class="py-3.5 text-binance-textMuted font-mono text-[11px]">${readableDate}</td>
+                    <td class="py-3.5">
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded border ${typeClass}">${typeText}</span>
+                    </td>
+                    <td class="py-3.5 font-bold font-mono ${isProfit ? 'text-binance-profit' : 'text-binance-loss'}">
+                        ${isProfit ? '+' : '-'}${formatVal(tx.amount)}
+                    </td>
+                    <td class="py-3.5 font-mono text-binance-textMuted">${formatVal(tx.fee)}</td>
+                    <td class="py-3.5 text-gray-300 font-medium max-w-xs truncate" title="${tx.notes}">${tx.notes}</td>
+                    <td class="py-3.5">${dynamicLabel}</td>
+                    <td class="py-3.5 text-center">
+                        <button onclick="deleteTransaction(${tx.id})" class="text-binance-textMuted hover:text-binance-loss transition px-2 py-1 rounded" title="Eliminar movimiento">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+
+                // Mobile card structure
+                const card = document.createElement('div');
+                card.className = "p-3 bg-binance-bgDark border border-gray-800 rounded-lg space-y-2 relative animate-fadeIn";
+                card.innerHTML = `
+                    <button onclick="deleteTransaction(${tx.id})" class="absolute top-3 right-3 text-binance-textMuted hover:text-binance-loss transition text-sm">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-[9px] font-bold px-2 py-0.5 rounded border ${typeClass}">${typeText}</span>
+                        <span class="text-[10px] text-binance-textMuted font-mono">${readableDate}</span>
+                    </div>
+                    <div class="flex justify-between items-center pt-1 border-t border-gray-800/50">
+                        <div>
+                            <p class="text-[10px] text-binance-textMuted">Monto Neto / Fee</p>
+                            <p class="text-sm font-bold font-mono ${isProfit ? 'text-binance-profit' : 'text-binance-loss'}">
+                                ${isProfit ? '+' : '-'}${formatVal(tx.amount)}
+                                <span class="text-[10px] text-binance-textMuted font-normal"> / Fee: ${formatVal(tx.fee)}</span>
+                            </p>
+                        </div>
+                        <div>
+                            ${dynamicLabel}
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-300 font-medium truncate pt-1">${tx.notes}</p>
+                `;
+                mobileList.appendChild(card);
+            });
+        }
+
+        function renderCharts(initialVal, transactions) {
+            const chronologicalTx = [...transactions].reverse(); 
+            
+            let cumulativeBalance = initialVal;
+            const balanceHistory = [cumulativeBalance];
+            const labels = ['Inicio'];
+
+            chronologicalTx.forEach((tx, idx) => {
+                const amt = parseFloat(tx.amount);
+                const fee = parseFloat(tx.fee) || 0;
+                
+                if (tx.type === 'profit') {
+                    cumulativeBalance += (amt - fee);
+                } else if (tx.type === 'loss') {
+                    cumulativeBalance -= (amt + fee);
+                }
+                balanceHistory.push(cumulativeBalance);
+                labels.push('#' + (idx + 1));
+            });
+
+            let wins = 0;
+            let losses = 0;
+            transactions.forEach(t => {
+                if (t.type === 'profit') wins++;
+                if (t.type === 'loss') losses++;
+            });
+
+            if (chartInstanceEquity) chartInstanceEquity.destroy();
+            if (chartInstanceWinLoss) chartInstanceWinLoss.destroy();
+
+            const ctxLine = document.getElementById('chart-equity-curve').getContext('2d');
+            chartInstanceEquity = new Chart(ctxLine, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Curva de Crecimiento ($)',
+                        data: balanceHistory,
+                        borderColor: '#F0B90B',
+                        backgroundColor: 'rgba(240, 185, 11, 0.05)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        fill: true,
+                        pointBackgroundColor: '#F0B90B',
+                        pointBorderColor: '#0B0E11',
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { color: '#848E9C', font: { size: 9, family: 'Fira Code' } }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#848E9C', font: { size: 9, family: 'Fira Code' } }
+                        }
+                    }
+                }
+            });
+
+            const ctxPie = document.getElementById('chart-win-loss').getContext('2d');
+            chartInstanceWinLoss = new Chart(ctxPie, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Ganancia', 'Pérdida'],
+                    datasets: [{
+                        data: [wins === 0 && losses === 0 ? 1 : wins, losses], 
+                        backgroundColor: [wins === 0 && losses === 0 ? '#474F59' : '#0ECB81', '#F6465D'],
+                        borderColor: '#1E2329',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    cutout: '70%'
+                }
+            });
+        }
+
+        window.onload = function() {
+            loadStorage();
+            updateWorkspace();
+        }
+    </script>
+</body>
+</html>
