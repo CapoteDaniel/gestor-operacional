@@ -70,7 +70,7 @@
                 </div>
                 <div>
                     <h1 class="text-md font-bold tracking-tight text-white flex items-center gap-2">
-                        GESTOR OPERACIONAL <span class="text-[10px] bg-binance-gold/10 text-binance-gold px-2 py-0.5 rounded border border-binance-gold/20 font-mono font-bold">PRO v2.8</span>
+                        GESTOR OPERACIONAL <span class="text-[10px] bg-binance-gold/10 text-binance-gold px-2 py-0.5 rounded border border-binance-gold/20 font-mono font-bold">PRO v2.9</span>
                     </h1>
                     <p class="text-xs text-binance-textMuted font-medium">Gestor de Ganancias y Pérdidas: Futuros & P2P</p>
                 </div>
@@ -109,7 +109,7 @@
                 </div>
             </div>
 
-            <!-- Initial Balance Setting Card -->
+            <!-- Capital Setting Card -->
             <div class="bg-binance-cardDark border border-gray-800 rounded-xl p-4">
                 <h3 class="text-xs font-bold uppercase text-binance-textMuted tracking-wider flex items-center gap-1.5 mb-3">
                     <i class="fa-solid fa-wallet text-blue-400"></i> Capital
@@ -201,11 +201,15 @@
                 <!-- ADD MOVEMENT FORM (Left section, span 5) -->
                 <div class="lg:col-span-5 bg-binance-cardDark border border-gray-800 rounded-xl p-5 flex flex-col justify-between">
                     <div>
-                        <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-1.5">
-                            <i class="fa-solid fa-circle-plus text-binance-gold"></i> Registrar Movimiento
-                        </h3>
+                        <!-- Header button to toggle collapse on mobile/desktop -->
+                        <button onclick="toggleFormCollapse()" type="button" class="w-full flex items-center justify-between mb-4 focus:outline-none">
+                            <h3 class="text-sm font-bold text-white flex items-center gap-1.5">
+                                <i class="fa-solid fa-circle-plus text-binance-gold"></i> Registrar Movimiento
+                            </h3>
+                            <i id="form-collapse-icon" class="fa-solid fa-chevron-up text-binance-textMuted transition-transform duration-300"></i>
+                        </button>
                         
-                        <form id="form-transaction" onsubmit="addTransaction(event)" class="space-y-4">
+                        <form id="form-transaction" onsubmit="addTransaction(event)" class="space-y-4 transition-all duration-300 overflow-hidden max-h-[1000px]">
                             <!-- Movement Type Tabs (Profit vs Loss) -->
                             <div>
                                 <label class="block text-[11px] text-binance-textMuted mb-1.5 font-semibold">Tipo de Movimiento</label>
@@ -217,6 +221,12 @@
                                         <i class="fa-solid fa-circle-trend-down text-sm"></i> Pérdida
                                     </button>
                                 </div>
+                            </div>
+
+                            <!-- Date and Time Picker -->
+                            <div>
+                                <label class="block text-[11px] text-binance-textMuted mb-1.5 font-semibold">Fecha de la Operación</label>
+                                <input type="date" id="form-date" required class="w-full bg-binance-inputDark border border-gray-800 focus:border-binance-gold rounded-lg p-2.5 text-xs text-white focus:outline-none transition font-mono">
                             </div>
 
                             <!-- Amount & Fees -->
@@ -288,55 +298,40 @@
 
             </div>
 
-            <!-- TRANSACTION HISTORY LEDGER TABLE -->
+            <!-- TRANSACTION HISTORY LEDGER TABLE WITH CHROMATIC FOLDERS -->
             <div class="bg-binance-cardDark border border-gray-800 rounded-xl p-5">
-                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
-                    <div>
-                        <h3 class="text-sm font-bold text-white flex items-center gap-1.5">
-                            <i class="fa-solid fa-table-list text-binance-gold"></i> Historial de Movimientos Operativos
-                        </h3>
-                        <p class="text-xs text-binance-textMuted mt-0.5">Bitácora cronológica con detalle de operaciones realizadas en este Job.</p>
-                    </div>
+                <div class="flex items-center justify-between gap-4 mb-4">
+                    <button onclick="toggleLedgerCollapse()" type="button" class="w-full flex items-center justify-between text-left focus:outline-none">
+                        <div>
+                            <h3 class="text-sm font-bold text-white flex items-center gap-1.5">
+                                <i class="fa-solid fa-folder-tree text-binance-gold"></i> Carpetas de Historial (Meses y Años)
+                            </h3>
+                            <p class="text-xs text-binance-textMuted mt-0.5">Tus movimientos agrupados por período fiscal para mejor análisis y orden cronológico.</p>
+                        </div>
+                        <i id="ledger-collapse-icon" class="fa-solid fa-chevron-up text-binance-textMuted transition-transform duration-300"></i>
+                    </button>
+                </div>
 
-                    <!-- Filter Options -->
-                    <div class="flex items-center space-x-2 w-full sm:w-auto">
+                <!-- Ledger list representation with folder groupings -->
+                <div id="ledger-collapsible-wrapper" class="transition-all duration-300 overflow-hidden max-h-[2500px]">
+                    <div class="flex items-center space-x-2 w-full sm:w-auto mb-5">
                         <select id="filter-type" onchange="renderHistory()" class="bg-binance-inputDark border border-gray-800 text-xs text-white rounded-lg p-2 focus:outline-none focus:border-binance-gold w-full sm:w-auto">
                             <option value="all">Todos los Movimientos</option>
                             <option value="profit">Solo Ganancias</option>
                             <option value="loss">Solo Pérdidas</option>
                         </select>
                     </div>
-                </div>
 
-                <!-- Ledger list representation with responsive behavior -->
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs min-w-[600px] hidden md:table">
-                        <thead>
-                            <tr class="border-b border-gray-800 text-binance-textMuted uppercase text-[10px] font-bold">
-                                <th class="pb-3 pt-1">Fecha</th>
-                                <th class="pb-3 pt-1">Tipo</th>
-                                <th class="pb-3 pt-1">Monto Neto</th>
-                                <th class="pb-3 pt-1">Comisión</th>
-                                <th class="pb-3 pt-1">Detalle / Notas</th>
-                                <th class="pb-3 pt-1">Variables</th>
-                                <th class="pb-3 pt-1 text-center">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="ledger-table-body" class="divide-y divide-gray-800/50">
-                            <!-- Rendered dynamically -->
-                        </tbody>
-                    </table>
-
-                    <!-- Mobile responsive grid list (Visible on small screens only) -->
-                    <div id="ledger-mobile-list" class="block md:hidden space-y-3">
-                        <!-- Rendered dynamically -->
+                    <!-- Dynamic monthly folders will render inside this container -->
+                    <div id="folders-container" class="space-y-4">
+                        <!-- Loaded dynamically via JavaScript -->
                     </div>
-                </div>
 
-                <!-- Empty list alert -->
-                <div id="ledger-empty-state" class="hidden text-center py-8 text-binance-textMuted text-xs flex flex-col items-center justify-center gap-2">
-                    <i class="fa-solid fa-folder-open text-3xl opacity-30"></i>
-                    <span>Aún no tienes movimientos en este Job. ¡Ingresa tu primera operación!</span>
+                    <!-- Empty list alert -->
+                    <div id="ledger-empty-state" class="hidden text-center py-8 text-binance-textMuted text-xs flex flex-col items-center justify-center gap-2">
+                        <i class="fa-solid fa-folder-open text-3xl opacity-30"></i>
+                        <span>Aún no tienes movimientos en este Job. ¡Ingresa tu primera operación!</span>
+                    </div>
                 </div>
             </div>
 
@@ -445,7 +440,7 @@
                                 <label class="block text-binance-textMuted text-xs mb-1.5 font-semibold">Inversión Inicial (USDT)</label>
                                 <div class="relative">
                                     <span class="absolute right-3 top-2.5 text-[10px] text-binance-textMuted font-mono">USDT</span>
-                                    <input type="number" id="calc-p2p-cap" value="500" step="any" oninput="runP2pCalc()" class="w-full bg-binance-inputDark border border-gray-800 focus:border-indigo-500 rounded-lg py-2 pl-3 pr-12 text-xs text-white font-mono focus:outline-none transition">
+                                    <input type="number" id="calc-p2p-cap" value="500" step="any" oninput="runP2pCalc()" class="w-full bg-binance-inputDark border border-indigo-500 rounded-lg py-2 pl-3 pr-12 text-xs text-white font-mono focus:outline-none transition">
                                 </div>
                             </div>
                             <div>
@@ -497,7 +492,7 @@
         <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
             <p>© 2026 GESTOR OPERACIONAL. Diseñado exclusivamente para analítica de Futuros & P2P.</p>
             <div class="flex space-x-4">
-                <span class="flex items-center gap-1"><i class="fa-solid fa-shield-halved text-binance-gold"></i> Datos Guardados Logicamente de forma Privada</span>
+                <span class="flex items-center gap-1"><i class="fa-solid fa-shield-halved text-binance-gold"></i> Datos Guardados de forma Privada</span>
             </div>
         </div>
     </footer>
@@ -622,6 +617,7 @@
         let state = {
             activeBranch: 'futuros',
             formType: 'profit', 
+            openFolders: {}, // Track which chronological monthly folders are expanded in UI
             branches: {
                 futuros: {
                     id: 'futuros',
@@ -630,9 +626,9 @@
                     desc: 'Registro operacional para apalancamientos, coberturas y scalping de criptoactivos.',
                     initialBalance: 1000,
                     transactions: [
-                        { id: 1, date: "2026-07-01T10:30:00", type: "profit", amount: 150, fee: 3.5, notes: "BTC Long 20x scalp exitoso", leverage: 20 },
-                        { id: 2, date: "2026-07-01T15:45:00", type: "loss", amount: 60, fee: 1.2, notes: "ETH Short stop loss alcanzado", leverage: 10 },
-                        { id: 3, date: "2026-07-02T09:00:00", type: "profit", amount: 280, fee: 5.6, notes: "SOL Long breakout diario", leverage: 20 }
+                        { id: 1, date: "2026-07-02", type: "profit", amount: 150, fee: 3.5, notes: "BTC Long 20x scalp exitoso", leverage: 20 },
+                        { id: 2, date: "2026-07-01", type: "loss", amount: 60, fee: 1.2, notes: "ETH Short stop loss alcanzado", leverage: 10 },
+                        { id: 3, date: "2026-06-25", type: "profit", amount: 280, fee: 5.6, notes: "SOL Long breakout diario", leverage: 20 }
                     ]
                 },
                 p2p: {
@@ -642,23 +638,38 @@
                     desc: 'Arbitraje fiat local, cotizaciones en cuenta bancaria y remesas peer-to-peer.',
                     initialBalance: 2500,
                     transactions: [
-                        { id: 1, date: "2026-07-01T08:00:00", type: "profit", amount: 45, fee: 0, notes: "Venta USDT premium Pago Móvil", bank: "Pago Móvil" },
-                        { id: 2, date: "2026-07-01T12:30:00", type: "profit", amount: 24, fee: 0, notes: "Compra barata por Banesco", bank: "Banesco" },
-                        { id: 3, date: "2026-07-02T14:20:00", type: "loss", amount: 15, fee: 2.5, notes: "Diferencial de tasa bancaria o fee", bank: "Mercantil" }
+                        { id: 1, date: "2026-07-02", type: "profit", amount: 45, fee: 0, notes: "Venta USDT premium Pago Móvil", bank: "Pago Móvil" },
+                        { id: 2, date: "2026-07-01", type: "profit", amount: 24, fee: 0, notes: "Compra barata por Banesco", bank: "Banesco" },
+                        { id: 3, date: "2026-06-18", type: "loss", amount: 15, fee: 2.5, notes: "Diferencial de tasa bancaria o fee", bank: "Mercantil" }
                     ]
                 }
             }
         };
 
+        const monthNames = [
+            "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+            "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+        ];
+
         let chartInstanceEquity = null;
         let chartInstanceWinLoss = null;
 
+        // Set form default date on load or action
+        function setFormDefaultDateTime() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            document.getElementById('form-date').value = `${year}-${month}-${day}`;
+        }
+
         function loadStorage() {
-            const localData = localStorage.getItem('trader_ledger_state_v26');
+            const localData = localStorage.getItem('trader_ledger_state_v29');
             if (localData) {
                 try {
                     state = JSON.parse(localData);
                     state.formType = 'profit';
+                    if (!state.openFolders) state.openFolders = {};
                 } catch (e) {
                     console.error("Error reading stored cache, resetting...", e);
                 }
@@ -666,7 +677,7 @@
         }
 
         function saveToStorage() {
-            localStorage.setItem('trader_ledger_state_v26', JSON.stringify(state));
+            localStorage.setItem('trader_ledger_state_v29', JSON.stringify(state));
         }
 
         function formatVal(amount) {
@@ -704,6 +715,32 @@
             }, 3000);
         }
 
+        function toggleFormCollapse() {
+            const form = document.getElementById('form-transaction');
+            const icon = document.getElementById('form-collapse-icon');
+            
+            if (form.classList.contains('hidden')) {
+                form.classList.remove('hidden');
+                icon.classList.remove('rotate-180');
+            } else {
+                form.classList.add('hidden');
+                icon.classList.add('rotate-180');
+            }
+        }
+
+        function toggleLedgerCollapse() {
+            const wrapper = document.getElementById('ledger-collapsible-wrapper');
+            const icon = document.getElementById('ledger-collapse-icon');
+            
+            if (wrapper.classList.contains('hidden')) {
+                wrapper.classList.remove('hidden');
+                icon.classList.remove('rotate-180');
+            } else {
+                wrapper.classList.add('hidden');
+                icon.classList.add('rotate-180');
+            }
+        }
+
         function setFormType(type) {
             state.formType = type;
             const btnProfit = document.getElementById('btn-type-profit');
@@ -724,10 +761,14 @@
             const amountInput = document.getElementById('form-amount');
             const feeInput = document.getElementById('form-fee');
             const notesInput = document.getElementById('form-notes');
+            const dateInput = document.getElementById('form-date');
             
             const amount = parseFloat(amountInput.value);
             const fee = parseFloat(feeInput.value) || 0;
             const notes = notesInput.value.trim() || (state.formType === 'profit' ? 'Ganancia sin detalles' : 'Pérdida sin detalles');
+            
+            // Capture date only (YYYY-MM-DD)
+            const dateVal = dateInput.value ? dateInput.value : new Date().toISOString().split('T')[0];
 
             if (isNaN(amount) || amount <= 0) {
                 triggerToast('Por favor introduce un monto válido superior a cero.', 'error');
@@ -736,7 +777,7 @@
 
             const tx = {
                 id: Date.now(),
-                date: new Date().toISOString(),
+                date: dateVal,
                 type: state.formType,
                 amount: amount,
                 fee: fee,
@@ -751,7 +792,16 @@
                 tx.bank = bankVal || 'No especificado';
             }
 
-            activeBranch.transactions.unshift(tx); 
+            // Push transaction and sort chronologically descending
+            activeBranch.transactions.push(tx); 
+            activeBranch.transactions.sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id);
+
+            // Automatically open the folder for the newly added transaction
+            const [yr, mn, dy] = dateVal.split('-');
+            const d = new Date(yr, mn - 1, dy);
+            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            state.openFolders[key] = true;
+
             saveToStorage();
             
             amountInput.value = '';
@@ -760,6 +810,7 @@
             if (document.getElementById('form-p2p-bank')) {
                 document.getElementById('form-p2p-bank').value = '';
             }
+            setFormDefaultDateTime();
 
             triggerToast('Movimiento añadido con éxito a la bitácora!');
             updateWorkspace();
@@ -846,7 +897,7 @@
         }
 
         function executeDataDestruction() {
-            localStorage.removeItem('trader_ledger_state_v26');
+            localStorage.removeItem('trader_ledger_state_v29');
             closeDoubleResetModal();
             triggerToast('Restableciendo base de datos...', 'warning');
             setTimeout(() => {
@@ -1103,16 +1154,21 @@
             document.getElementById('branch-count').textContent = counter;
         }
 
+        function toggleFolder(folderKey) {
+            state.openFolders[folderKey] = !state.openFolders[folderKey];
+            saveToStorage();
+            renderHistory();
+        }
+
         function renderHistory() {
             const activeBranch = state.branches[state.activeBranch];
             const filter = document.getElementById('filter-type').value;
-            const tableBody = document.getElementById('ledger-table-body');
-            const mobileList = document.getElementById('ledger-mobile-list');
+            const foldersContainer = document.getElementById('folders-container');
             const emptyState = document.getElementById('ledger-empty-state');
 
-            tableBody.innerHTML = '';
-            mobileList.innerHTML = '';
+            foldersContainer.innerHTML = '';
 
+            // 1. Filter Transactions
             let filteredTx = activeBranch.transactions;
             if (filter !== 'all') {
                 filteredTx = activeBranch.transactions.filter(t => t.type === filter);
@@ -1125,69 +1181,181 @@
                 emptyState.classList.add('hidden');
             }
 
+            // 2. Group Transactions by Month-Year (YYYY-MM)
+            const grouped = {};
             filteredTx.forEach(tx => {
-                const dateObj = new Date(tx.date);
-                const readableDate = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const [yearStr, monthStr, dayStr] = tx.date.split('-');
+                const year = parseInt(yearStr);
+                const month = parseInt(monthStr) - 1; // 0 to 11
+                const folderKey = `${year}-${String(month + 1).padStart(2, '0')}`; // E.g., "2026-07"
 
-                const isProfit = tx.type === 'profit';
-                const typeText = isProfit ? 'Ganancia' : 'Pérdida';
-                const typeClass = isProfit ? 'text-binance-profit bg-binance-profit/10 border-binance-profit/20' : 'text-binance-loss bg-binance-loss/10 border-binance-loss/20';
-                
-                let dynamicLabel = `<span class="text-binance-textMuted font-mono">N/A</span>`;
-                if (tx.leverage) {
-                    dynamicLabel = `<span class="text-[10px] font-mono font-bold text-binance-gold bg-binance-gold/10 px-2 py-0.5 rounded border border-binance-gold/20">Lev: ${tx.leverage}x</span>`;
-                } else if (tx.bank) {
-                    dynamicLabel = `<span class="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">${tx.bank}</span>`;
+                if (!grouped[folderKey]) {
+                    grouped[folderKey] = {
+                        label: `${monthNames[month]} ${year}`,
+                        key: folderKey,
+                        transactions: [],
+                        monthlyProfit: 0,
+                        monthlyLoss: 0,
+                        monthlyFees: 0
+                    };
                 }
+                grouped[folderKey].transactions.push(tx);
 
-                // Desktop structure
-                const row = document.createElement('tr');
-                row.className = "hover:bg-binance-bgDark/40 transition";
-                row.innerHTML = `
-                    <td class="py-3.5 text-binance-textMuted font-mono text-[11px]">${readableDate}</td>
-                    <td class="py-3.5">
-                        <span class="text-[10px] font-bold px-2 py-0.5 rounded border ${typeClass}">${typeText}</span>
-                    </td>
-                    <td class="py-3.5 font-bold font-mono ${isProfit ? 'text-binance-profit' : 'text-binance-loss'}">
-                        ${isProfit ? '+' : '-'}${formatVal(tx.amount)}
-                    </td>
-                    <td class="py-3.5 font-mono text-binance-textMuted">${formatVal(tx.fee)}</td>
-                    <td class="py-3.5 text-gray-300 font-medium max-w-xs truncate" title="${tx.notes}">${tx.notes}</td>
-                    <td class="py-3.5">${dynamicLabel}</td>
-                    <td class="py-3.5 text-center">
-                        <button onclick="deleteTransaction(${tx.id})" class="text-binance-textMuted hover:text-binance-loss transition px-2 py-1 rounded" title="Eliminar movimiento">
+                // Cumulative monthly performance
+                const amt = parseFloat(tx.amount) || 0;
+                const fee = parseFloat(tx.fee) || 0;
+                grouped[folderKey].monthlyFees += fee;
+                if (tx.type === 'profit') {
+                    grouped[folderKey].monthlyProfit += amt;
+                } else {
+                    grouped[folderKey].monthlyLoss += amt;
+                }
+            });
+
+            // 3. Sort folders chronologically descending (e.g., "2026-07" before "2026-06")
+            const sortedFolderKeys = Object.keys(grouped).sort().reverse();
+
+            // 4. If no folders are explicitly open in the state, default open the most recent one
+            if (sortedFolderKeys.length > 0 && Object.keys(state.openFolders).length === 0) {
+                state.openFolders[sortedFolderKeys[0]] = true;
+            }
+
+            // 5. Render folders as beautiful accordions
+            sortedFolderKeys.forEach(key => {
+                const group = grouped[key];
+                const isOpen = !!state.openFolders[key];
+                const totalNetMonthly = group.monthlyProfit - group.monthlyLoss - group.monthlyFees;
+                
+                const performanceClass = totalNetMonthly >= 0 ? 'text-binance-profit' : 'text-binance-loss';
+                const performanceSign = totalNetMonthly >= 0 ? '+' : '';
+
+                const folderDiv = document.createElement('div');
+                folderDiv.className = "border border-gray-800 rounded-xl overflow-hidden bg-binance-cardDark/40 hover:border-gray-700/60 transition-all duration-200";
+
+                // Folder Accordion Header
+                folderDiv.innerHTML = `
+                    <div onclick="toggleFolder('${key}')" class="p-4 bg-binance-cardDark border-b border-gray-800/80 flex items-center justify-between cursor-pointer select-none">
+                        <div class="flex items-center space-x-3">
+                            <div class="text-xl ${isOpen ? 'text-binance-gold' : 'text-binance-textMuted'} transition-colors">
+                                <i class="${isOpen ? 'fa-solid fa-folder-open' : 'fa-solid fa-folder'}"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-xs sm:text-sm font-bold text-white">${group.label}</h4>
+                                <p class="text-[10px] text-binance-textMuted font-medium">${group.transactions.length} operacion(es)</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-3 font-mono">
+                            <span class="text-xs font-black ${performanceClass}">${performanceSign}${formatVal(totalNetMonthly)}</span>
+                            <i class="fa-solid fa-chevron-down text-binance-textMuted text-xs transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}"></i>
+                        </div>
+                    </div>
+                `;
+
+                // Folder Container Body
+                const folderBody = document.createElement('div');
+                folderBody.className = `transition-all duration-300 ${isOpen ? 'block p-3 sm:p-4 bg-binance-bgDark/20' : 'hidden'}`;
+
+                // Create inner elements
+                const tableResponsiveWrapper = document.createElement('div');
+                tableResponsiveWrapper.className = "overflow-x-auto";
+
+                // Create Desktop Table structure
+                const desktopTable = document.createElement('table');
+                desktopTable.className = "w-full text-left text-xs min-w-[600px] hidden md:table";
+                desktopTable.innerHTML = `
+                    <thead>
+                        <tr class="border-b border-gray-800 text-binance-textMuted uppercase text-[10px] font-bold">
+                            <th class="pb-3 pt-1">Fecha</th>
+                            <th class="pb-3 pt-1">Tipo</th>
+                            <th class="pb-3 pt-1">Monto Neto</th>
+                            <th class="pb-3 pt-1">Comisión</th>
+                            <th class="pb-3 pt-1">Detalle / Notas</th>
+                            <th class="pb-3 pt-1">Variables</th>
+                            <th class="pb-3 pt-1 text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-800/50"></tbody>
+                `;
+
+                const desktopTbody = desktopTable.querySelector('tbody');
+
+                // Create Mobile List container
+                const mobileList = document.createElement('div');
+                mobileList.className = "block md:hidden space-y-3";
+
+                // Fill both structures
+                group.transactions.forEach(tx => {
+                    const [yearStr, monthStr, dayStr] = tx.date.split('-');
+                    const dateObj = new Date(parseInt(yearStr), parseInt(monthStr) - 1, parseInt(dayStr));
+                    const readableDate = dateObj.toLocaleDateString();
+
+                    const isProfit = tx.type === 'profit';
+                    const typeText = isProfit ? 'Ganancia' : 'Pérdida';
+                    const typeClass = isProfit ? 'text-binance-profit bg-binance-profit/10 border-binance-profit/20' : 'text-binance-loss bg-binance-loss/10 border-binance-loss/20';
+                    
+                    let dynamicLabel = `<span class="text-binance-textMuted font-mono">N/A</span>`;
+                    if (tx.leverage) {
+                        dynamicLabel = `<span class="text-[10px] font-mono font-bold text-binance-gold bg-binance-gold/10 px-2 py-0.5 rounded border border-binance-gold/20">Lev: ${tx.leverage}x</span>`;
+                    } else if (tx.bank) {
+                        dynamicLabel = `<span class="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">${tx.bank}</span>`;
+                    }
+
+                    // Append Desktop Row
+                    const row = document.createElement('tr');
+                    row.className = "hover:bg-binance-bgDark/40 transition";
+                    row.innerHTML = `
+                        <td class="py-3.5 text-binance-textMuted font-mono text-[11px]">${readableDate}</td>
+                        <td class="py-3.5">
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded border ${typeClass}">${typeText}</span>
+                        </td>
+                        <td class="py-3.5 font-bold font-mono ${isProfit ? 'text-binance-profit' : 'text-binance-loss'}">
+                            ${isProfit ? '+' : '-'}${formatVal(tx.amount)}
+                        </td>
+                        <td class="py-3.5 font-mono text-binance-textMuted">${formatVal(tx.fee)}</td>
+                        <td class="py-3.5 text-gray-300 font-medium max-w-xs truncate" title="${tx.notes}">${tx.notes}</td>
+                        <td class="py-3.5">${dynamicLabel}</td>
+                        <td class="py-3.5 text-center">
+                            <button onclick="deleteTransaction(${tx.id})" class="text-binance-textMuted hover:text-binance-loss transition px-2 py-1 rounded" title="Eliminar movimiento">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </td>
+                    `;
+                    desktopTbody.appendChild(row);
+
+                    // Append Mobile Card
+                    const card = document.createElement('div');
+                    card.className = "p-3 bg-binance-bgDark border border-gray-800 rounded-lg space-y-2 relative animate-fadeIn";
+                    card.innerHTML = `
+                        <button onclick="deleteTransaction(${tx.id})" class="absolute top-3 right-3 text-binance-textMuted hover:text-binance-loss transition text-sm">
                             <i class="fa-solid fa-trash-can"></i>
                         </button>
-                    </td>
-                `;
-                tableBody.appendChild(row);
+                        <div class="flex items-center space-x-2">
+                            <span class="text-[9px] font-bold px-2 py-0.5 rounded border ${typeClass}">${typeText}</span>
+                            <span class="text-[10px] text-binance-textMuted font-mono">${readableDate}</span>
+                        </div>
+                        <div class="flex justify-between items-center pt-1 border-t border-gray-800/50">
+                            <div>
+                                <p class="text-[10px] text-binance-textMuted">Monto Neto / Fee</p>
+                                <p class="text-sm font-bold font-mono ${isProfit ? 'text-binance-profit' : 'text-binance-loss'}">
+                                    ${isProfit ? '+' : '-'}${formatVal(tx.amount)}
+                                    <span class="text-[10px] text-binance-textMuted font-normal"> / Fee: ${formatVal(tx.fee)}</span>
+                                </p>
+                            </div>
+                            <div>
+                                ${dynamicLabel}
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-300 font-medium truncate pt-1">${tx.notes}</p>
+                    `;
+                    mobileList.appendChild(card);
+                });
 
-                // Mobile card structure
-                const card = document.createElement('div');
-                card.className = "p-3 bg-binance-bgDark border border-gray-800 rounded-lg space-y-2 relative animate-fadeIn";
-                card.innerHTML = `
-                    <button onclick="deleteTransaction(${tx.id})" class="absolute top-3 right-3 text-binance-textMuted hover:text-binance-loss transition text-sm">
-                        <i class="fa-solid fa-trash-can"></i>
-                    </button>
-                    <div class="flex items-center space-x-2">
-                        <span class="text-[9px] font-bold px-2 py-0.5 rounded border ${typeClass}">${typeText}</span>
-                        <span class="text-[10px] text-binance-textMuted font-mono">${readableDate}</span>
-                    </div>
-                    <div class="flex justify-between items-center pt-1 border-t border-gray-800/50">
-                        <div>
-                            <p class="text-[10px] text-binance-textMuted">Monto Neto / Fee</p>
-                            <p class="text-sm font-bold font-mono ${isProfit ? 'text-binance-profit' : 'text-binance-loss'}">
-                                ${isProfit ? '+' : '-'}${formatVal(tx.amount)}
-                                <span class="text-[10px] text-binance-textMuted font-normal"> / Fee: ${formatVal(tx.fee)}</span>
-                            </p>
-                        </div>
-                        <div>
-                            ${dynamicLabel}
-                        </div>
-                    </div>
-                    <p class="text-xs text-gray-300 font-medium truncate pt-1">${tx.notes}</p>
-                `;
-                mobileList.appendChild(card);
+                tableResponsiveWrapper.appendChild(desktopTable);
+                tableResponsiveWrapper.appendChild(mobileList);
+                folderBody.appendChild(tableResponsiveWrapper);
+                folderDiv.appendChild(folderBody);
+
+                foldersContainer.appendChild(folderDiv);
             });
         }
 
@@ -1283,6 +1451,7 @@
 
         window.onload = function() {
             loadStorage();
+            setFormDefaultDateTime();
             updateWorkspace();
         }
     </script>
